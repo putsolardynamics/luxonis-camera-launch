@@ -1,0 +1,21 @@
+/oak:
+  ros__parameters:
+    camera:
+      i_nn_type: none
+      i_tf_imu_from_descr: 'true'
+    left:
+      i_fps: 15.0
+      i_resoluton: 400P
+      i_config_calibration: '/ws/install/share/depthai_ros_driver/config/calibration/left.yaml'
+    right:
+      i_fps: 15.0
+      i_resoluton: 400P
+      i_config_calibration: '/ws/install/share/depthai_ros_driver/config/calibration/right.yaml'
+    rgb:
+      i_fps: 15.0
+      i_resoluton: 1080P
+      i_config_calibration: '/ws/install/share/depthai_ros_driver/config/calibration/rgb.yaml'
+    stereo:
+      i_subpixel: true
+      i_publish_synced_rect_pair: true
+      i_align_depth: true
