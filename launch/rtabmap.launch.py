@@ -13,23 +13,14 @@ def launch_setup(context, *args, **kwargs):
     name = LaunchConfiguration('name').perform(context)
     prefix = get_package_share_directory("depthai_ros_driver")
 
-    params_file= LaunchConfiguration("params_file")
-    parameters = [
-        {
-            "frame_id": name,
-            "subscribe_rgb": True,
-            "subscribe_depth": True,
-            "subscribe_odom_info": True,
-            "approx_sync": True,
-            "Rtabmap/DetectionRate": "3.5",
-        }
-    ]
+    params_file=LaunchConfiguration("params_file")
 
     remappings = [
         ("rgb/image", name+"/rgb/image_rect"),
         ("rgb/camera_info", name+"/rgb/camera_info"),
         ("depth/image", name+"/stereo/image_raw"),
     ]
+    print(get_package_share_directory("rtabmap_ros"))
 
     return [
         IncludeLaunchDescription(
@@ -37,6 +28,22 @@ def launch_setup(context, *args, **kwargs):
                 os.path.join(prefix, 'launch', 'camera.launch.py')),
             launch_arguments={"name": name,
                               "params_file": params_file}.items()),
+
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(get_package_share_directory("rtabmap_launch"), "launch", "rtabmap.launch.py")),
+            condition=IfCondition(LaunchConfiguration("use_rtabmap")),
+            launch_arguments={
+                "rgb_topic": f"{name}/rgb/image_rect",
+                "camera_info_topic": f"{name}/rgb/camera_info",
+                "depth_topic": f"{name}/stereo/image_raw",
+                "Rtabmap/DetectionRate": "2.5",
+                "frame_id": name,
+                "subscribe_rgb": "True",
+                "subscribe_depth": "True",
+                "subscribe_odom_info": "True",
+                "approx_sync": "True",
+            }.items()),
 
         LoadComposableNodes(
             condition=IfCondition(LaunchConfiguration("rectify_rgb")),
@@ -54,51 +61,13 @@ def launch_setup(context, *args, **kwargs):
                                 ('image_rect/theora', name+'/rgb/image_rect/theora')]
                 )
             ]),
-
-        # Osobny parametr do tego
-        LoadComposableNodes(
-            target_container=name+"_container",
-            condition=IfCondition(LaunchConfiguration("use_rtabmap")),
-            composable_node_descriptions=[
-                ComposableNode(
-                    package='rtabmap_odom',
-                    plugin='rtabmap_odom::RGBDOdometry',
-                    name='rgbd_odometry',
-                    parameters=parameters,
-                    remappings=remappings,
-                ),
-            ],
-        ),
-
-        LoadComposableNodes(
-            target_container=name+"_container",
-            condition=IfCondition(LaunchConfiguration("use_rtabmap")),
-            composable_node_descriptions=[
-                ComposableNode(
-                    package='rtabmap_slam',
-                    plugin='rtabmap_slam::CoreWrapper',
-                    name='rtabmap',
-                    parameters=parameters,
-                    remappings=remappings,
-                ),
-            ],
-        ),
-
-        Node(
-            condition=IfCondition(LaunchConfiguration("use_rtabmap")),
-            package="rtabmap_viz",
-            executable="rtabmap_viz",
-            output="screen",
-            parameters=parameters,
-            remappings=remappings,
-        ),
     ]
 
 
 def generate_launch_description():
     prefix = get_package_share_directory("rtabmap-launch")
     declared_arguments = [
-        DeclareLaunchArgument("odom", default_value="True")
+        DeclareLaunchArgument("odom", default_value="True"),
         DeclareLaunchArgument("use_rtabmap", default_value="False"),
         DeclareLaunchArgument("name", default_value="oak"),
         DeclareLaunchArgument("params_file", default_value=os.path.join(prefix, 'config', 'rtabmap.yaml')),
