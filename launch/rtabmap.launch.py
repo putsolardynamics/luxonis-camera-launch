@@ -29,22 +29,6 @@ def launch_setup(context, *args, **kwargs):
             launch_arguments={"name": name,
                               "params_file": params_file}.items()),
 
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(
-                os.path.join(get_package_share_directory("rtabmap_launch"), "launch", "rtabmap.launch.py")),
-            condition=IfCondition(LaunchConfiguration("use_rtabmap")),
-            launch_arguments={
-                "rgb_topic": f"{name}/rgb/image_rect",
-                "camera_info_topic": f"{name}/rgb/camera_info",
-                "depth_topic": f"{name}/stereo/image_raw",
-                "Rtabmap/DetectionRate": "2.5",
-                "frame_id": name,
-                "subscribe_rgb": "True",
-                "subscribe_depth": "True",
-                "subscribe_odom_info": "True",
-                "approx_sync": "True",
-            }.items()),
-
         LoadComposableNodes(
             condition=IfCondition(LaunchConfiguration("rectify_rgb")),
             target_container=name+"_container",
@@ -61,6 +45,34 @@ def launch_setup(context, *args, **kwargs):
                                 ('image_rect/theora', name+'/rgb/image_rect/theora')]
                 )
             ]),
+
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(get_package_share_directory("rtabmap_launch"), "launch", "rtabmap.launch.py")),
+            condition=IfCondition(LaunchConfiguration("rtabmap")),
+            launch_arguments={
+                "rgb_topic": f"{name}/rgb/image_rect",
+                "camera_info_topic": f"{name}/rgb/camera_info",
+                "depth_topic": f"{name}/stereo/image_raw",
+                "Rtabmap/DetectionRate": "3.5",
+                "frame_id": name,
+                "subscribe_rgb": "true",
+                "subscribe_depth": "true",
+                "subscribe_odom_info": "true",
+                "approx_sync": "True",
+                "rtabmap_viz": "True",
+            }.items()),
+
+        Node(
+            package='depthai_examples', executable='mobilenet_node',
+            output='screen',
+            parameters=[
+                {'tf_prefix': "oak"},
+                {'camera_param_uri': 'package://depthai_examples/params/camera'},
+                {'sync_nn': True},
+                {'nnName': "x"},
+                {'resourceBaseFolder': os.path.join(get_package_share_directory("depthai_examples"), "resources")}
+            ])
     ]
 
 
@@ -68,7 +80,7 @@ def generate_launch_description():
     prefix = get_package_share_directory("rtabmap-launch")
     declared_arguments = [
         DeclareLaunchArgument("odom", default_value="True"),
-        DeclareLaunchArgument("use_rtabmap", default_value="False"),
+        DeclareLaunchArgument("rtabmap", default_value="False"),
         DeclareLaunchArgument("name", default_value="oak"),
         DeclareLaunchArgument("params_file", default_value=os.path.join(prefix, 'config', 'rtabmap.yaml')),
         DeclareLaunchArgument("rectify_rgb", default_value="True"),
